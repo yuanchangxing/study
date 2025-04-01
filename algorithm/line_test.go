@@ -11,4 +11,7 @@ func TestLineRe(t *testing.T) {
 	log.Println(n)
 	ReverseN(&n)
 	log.Println(n)
+
+	//x := n.Reverse2()
+	//log.Println(x)
 }

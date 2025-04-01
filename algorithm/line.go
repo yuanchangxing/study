@@ -41,7 +41,7 @@ func (l *LNode) String() string {
 
 // 逆转
 func (l *LNode) Reverse() *LNode {
-	if l == nil {
+	if l == nil || l.next == nil {
 		return nil
 	}
 	var current = l
