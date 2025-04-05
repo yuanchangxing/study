@@ -6,7 +6,6 @@ import (
 	"context"
 	"encoding/json"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"time"
@@ -79,13 +78,14 @@ type proxy struct {
 
 var Proxy = &proxy{}
 
-func init() {
-	roxyURL, err := url.Parse("http://127.0.0.1:7890") // 替换为你的代理地址
+const LocalProxyUrl = "http://127.0.0.1:7890"
+
+func SetProxyUrl(u string) error {
+	roxyURL, err := url.Parse(u) // 替
 	if err != nil {
-		log.Fatalf("代理地址解析失败: %v", err)
+		return err
 	}
 
-	// 创建带有代理的 HTTP 客户端
 	client := &http.Client{
 		Transport: &http.Transport{
 			Proxy: http.ProxyURL(roxyURL),
@@ -93,7 +93,24 @@ func init() {
 		Timeout: 10 * time.Second,
 	}
 	Proxy.client = client
+	return nil
 }
+
+//func init() {
+//	roxyURL, err := url.Parse("http://127.0.0.1:7890") // 替换为你的代理地址
+//	if err != nil {
+//		log.Fatalf("代理地址解析失败: %v", err)
+//	}
+//
+//	// 创建带有代理的 HTTP 客户端
+//	client := &http.Client{
+//		Transport: &http.Transport{
+//			Proxy: http.ProxyURL(roxyURL),
+//		},
+//		Timeout: 10 * time.Second,
+//	}
+//	Proxy.client = client
+//}
 
 func (p *proxy) Get(url string) (resp *http.Response, err error) {
 	return p.client.Get(url)
