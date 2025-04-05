@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package proto;
+option go_package = "../pb";
+
+enum error {
+  success = 0;
+  other = 1;
+}
+
+enum cmd {
+  o = 0;
+  login = 10001;
+  loginResp = 10002;
+  join =  10006;
+  joinResp = 10007;
+}
+
+message Login {
+  string token = 1;
+  int32 userId = 2;
+}
+
+message LoginResp {
+  error error = 1;
+  int32 roomId = 2;
+}
+
+message Join {
+  int32 roomId = 1;
+}
+
+message JoinResp {
+  error error = 1;
+}
+

@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+package xnet;
+option go_package = "./xnet";
+
+message Demo {
+  string name = 1;
+  int64 age = 2;
+}
