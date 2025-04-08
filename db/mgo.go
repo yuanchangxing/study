@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"fmt"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/gridfs"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -27,14 +28,23 @@ func InitMongoDb(in DBInerface) error {
 		SetMaxConnecting(in.MaxConnecting()).
 		SetMaxConnIdleTime(in.ConnIdleTime())
 
-	client, err := mongo.NewClient(mgoClientOpt)
+	var err error
+	mgoDBInstance, err = mongo.NewClient(mgoClientOpt)
 	if err != nil {
-		return err
+		return fmt.Errorf("newClient %v", err)
 	}
 
-	err = client.Ping(context.TODO(), nil)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	err = mgoDBInstance.Connect(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("Connect %v", err)
+	}
+	
+	err = mgoDBInstance.Ping(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("ping %v %s", err, in.GetURI())
 	}
 
 	return nil
