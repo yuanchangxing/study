@@ -41,7 +41,7 @@ func InitMongoDb(in DBInerface) error {
 	if err != nil {
 		return fmt.Errorf("Connect %v", err)
 	}
-	
+
 	err = mgoDBInstance.Ping(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("ping %v %s", err, in.GetURI())
@@ -55,14 +55,14 @@ func MgoCollectionDo(database string, collectionName string, f func(col *mongo.C
 	return f(col)
 }
 
-func MgoGetFile(database string, fileName string) ([]byte, error) {
+func MgoGetFile(database string, fileId string) ([]byte, error) {
 	db := mgoDBInstance.Database(database)
 	bucket, err := gridfs.NewBucket(db)
 	if err != nil {
 		return nil, err
 	}
 
-	downStream, err := bucket.OpenDownloadStreamByName(fileName)
+	downStream, err := bucket.OpenDownloadStream(fileId)
 	if err != nil {
 		return nil, err
 	}
@@ -73,14 +73,14 @@ func MgoGetFile(database string, fileName string) ([]byte, error) {
 	return bs, err
 }
 
-func MgoStoreFile(database string, fileName string, file []byte) error {
+func MgoStoreFile(database string, fileId string, fileName string, file []byte) error {
 	db := mgoDBInstance.Database(database)
 	bucket, err := gridfs.NewBucket(db)
 	if err != nil {
 		return err
 	}
 
-	up, err := bucket.OpenUploadStream(fileName)
+	up, err := bucket.OpenUploadStreamWithID(fileId, fileName)
 	if err != nil {
 		return err
 	}
