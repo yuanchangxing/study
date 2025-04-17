@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 )
 
@@ -80,17 +81,26 @@ var Proxy = &proxy{}
 
 const LocalProxyUrl = "http://127.0.0.1:7890"
 
-func SetProxyUrl(u string) error {
-	roxyURL, err := url.Parse(u) // 替
-	if err != nil {
-		return err
+func SetProxyUrl(u string, timeout ...time.Duration) error {
+	u = strings.TrimSpace(u)
+	var t = 10 * time.Second
+	if len(timeout) > 0 && timeout[0] > 0 {
+		t = timeout[0]
+	}
+
+	var tans *http.Transport
+	if u != "" {
+		roxyURL, err := url.Parse(u) // 替
+		if err != nil {
+			return err
+		}
+
+		tans = &http.Transport{Proxy: http.ProxyURL(roxyURL)}
 	}
 
 	client := &http.Client{
-		Transport: &http.Transport{
-			Proxy: http.ProxyURL(roxyURL),
-		},
-		Timeout: 10 * time.Second,
+		Transport: tans,
+		Timeout:   t,
 	}
 	Proxy.client = client
 	return nil
