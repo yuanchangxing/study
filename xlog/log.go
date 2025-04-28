@@ -8,10 +8,10 @@ import (
 	"time"
 )
 
-var logger *logrus.Logger
+var Logger *logrus.Logger
 
 func SwitchColor(open bool) {
-	f := logger.Formatter.(*CustomTextFormatter)
+	f := Logger.Formatter.(*CustomTextFormatter)
 	ff := func(colo *color.Color) {
 		colo.EnableColor()
 	}
@@ -29,7 +29,7 @@ func SwitchColor(open bool) {
 }
 
 func init() {
-	logger = logrus.New()
+	Logger = logrus.New()
 	var cus = &CustomTextFormatter{
 		ForceColors:  true,
 		ColorInfo:    color.New(color.FgWhite),
@@ -38,10 +38,10 @@ func init() {
 		ColorDebug:   color.New(color.FgBlue),
 		ColorFatal:   color.New(color.FgRed),
 	}
-	logger.Formatter = cus
-	logger.Level = logrus.DebugLevel
+	Logger.Formatter = cus
+	Logger.Level = logrus.DebugLevel
 
-	logger.ReportCaller = true
+	Logger.ReportCaller = true
 
 }
 
@@ -113,4 +113,33 @@ func (f *CustomTextFormatter) formatDefault(entry *logrus.Entry) ([]byte, error)
 	msg := entry.Message
 
 	return []byte(fmt.Sprintf("[%s] %s %s\n", level, timestamp, msg)), nil
+}
+
+func Error(args ...interface{}) {
+	Logger.Error(args...)
+}
+
+func Errorf(format string, args ...interface{}) {
+	Logger.Errorf(format, args...)
+}
+
+func Info(args ...interface{}) {
+	Logger.Info(args...)
+}
+
+func Infof(format string, args ...interface{}) {
+	Logger.Infof(format, args...)
+}
+func Warn(args ...interface{}) {
+	Logger.Warn(args...)
+}
+func Warnf(farmat string, args ...interface{}) {
+	Logger.Warnf(farmat, args...)
+}
+
+func Debugf(format string, args ...interface{}) {
+	Logger.Debugf(format, args...)
+}
+func Debug(args ...interface{}) {
+	Logger.Debug(args...)
 }

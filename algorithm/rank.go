@@ -6,60 +6,73 @@ import (
 
 type maxHeapInterface interface {
 	Less(h maxHeapInterface) bool
+	Id() string
 }
 type maxHeap struct {
 	data  []maxHeapInterface
-	size  int
+	dMap  map[string]int
+	less  func(a, b maxHeapInterface) bool
 	mutex sync.RWMutex
 }
 
-func (m *maxHeap) Del(ind int) {
+func (m *maxHeap) GetSize() int {
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
+
+	return len(m.data)
+}
+
+func (m *maxHeap) Del(id string) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
-	if len(m.data) == 1 {
-		m.data = m.data[:len(m.data)-1]
+	ind, ok := m.dMap[id]
+	if !ok {
 		return
 	}
 
-	if len(m.data) <= ind {
-		return
-	}
-
-	m.data[ind] = m.data[len(m.data)-1]
+	ordData := m.data[ind]
+	finalData := m.data[len(m.data)-1]
+	delete(m.dMap, id)
 	m.data = m.data[:len(m.data)-1]
-	m.modifyLocked(ind, m.data[ind])
+	if len(m.data) == 0 || finalData == ordData {
+		return
+	}
+
+	m.modifyLocked(ind, finalData, ordData)
 }
 
-func (m *maxHeap) Push(data maxHeapInterface) {
+func (m *maxHeap) Push(data maxHeapInterface) bool {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
 	if len(m.data) == 0 {
 		m.data = append(m.data, data)
-		return
+		m.dMap[data.Id()] = len(m.data) - 1
+		return true
+	}
+
+	ordIndex, ok := m.dMap[data.Id()]
+	if ok {
+		m.modifyLocked(ordIndex, data, m.data[ordIndex])
+		return false
 	}
 
 	m.data = append(m.data, data)
+	m.dMap[data.Id()] = len(m.data) - 1
 	ind := len(m.data) - 1
 	m.upLocked(ind)
+	return true
 }
 
-func (m *maxHeap) modifyLocked(ind int, data maxHeapInterface) {
-	ordData := m.data[ind]
+func (m *maxHeap) modifyLocked(ind int, data maxHeapInterface, ordData maxHeapInterface) {
 	m.data[ind] = data
-	if ordData.Less(data) {
+	m.dMap[data.Id()] = ind
+	if m.less(ordData, data) {
 		m.upLocked(ind)
 	} else {
 		m.downLocked(ind)
 	}
-}
-
-func (m *maxHeap) Modify(ind int, data maxHeapInterface) {
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
-
-	m.modifyLocked(ind, data)
 }
 
 func (m *maxHeap) Pop() maxHeapInterface {
@@ -73,7 +86,10 @@ func (m *maxHeap) Pop() maxHeapInterface {
 	res := m.data[0]
 	m.data[0] = m.data[len(m.data)-1]
 	m.data = m.data[:len(m.data)-1]
-	m.downLocked(0)
+	delete(m.dMap, res.Id())
+	if len(m.data) != 0 {
+		m.downLocked(0)
+	}
 	return res
 
 }
@@ -117,16 +133,80 @@ func (m *maxHeap) compareAndSwapLocked(i, j int, isUp bool) bool {
 	}
 
 	if isUp {
-		if !m.data[i].Less(m.data[j]) {
+		if !m.less(m.data[i], m.data[j]) {
 			m.data[i], m.data[j] = m.data[j], m.data[i]
+			m.dMap[m.data[i].Id()] = i
+			m.dMap[m.data[j].Id()] = j
 			return true
 		}
 	} else {
-		if m.data[i].Less(m.data[j]) {
+		if m.less(m.data[i], m.data[j]) {
 			m.data[j], m.data[i] = m.data[i], m.data[j]
+			m.dMap[m.data[i].Id()] = i
+			m.dMap[m.data[j].Id()] = j
 			return true
 		}
 	}
 
 	return false
+}
+
+type Rank struct {
+	maxHeap *maxHeap
+	minHeap *maxHeap
+	mu      sync.Mutex
+	size    int
+}
+
+func NewRank(size int) *Rank {
+	return &Rank{
+		maxHeap: &maxHeap{dMap: make(map[string]int), less: func(a, b maxHeapInterface) bool {
+			return a.Less(b)
+		}},
+		minHeap: &maxHeap{dMap: make(map[string]int), less: func(a, b maxHeapInterface) bool {
+			return !a.Less(b)
+		}},
+		size: size,
+	}
+}
+
+func (r *maxHeap) Top() maxHeapInterface {
+	r.mutex.RLock()
+	defer r.mutex.RUnlock()
+
+	if len(r.data) == 0 {
+		return nil
+	}
+	return r.data[0]
+}
+
+func (r *Rank) Pop() maxHeapInterface {
+	da := r.maxHeap.Pop()
+	if da == nil {
+		return nil
+	}
+	r.minHeap.Del(da.Id())
+	return da
+}
+
+func (r *Rank) Del(data maxHeapInterface) {
+	r.maxHeap.Del(data.Id())
+	r.minHeap.Del(data.Id())
+}
+
+func (r *Rank) Push(data maxHeapInterface) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	isInsert := r.maxHeap.Push(data)
+	r.minHeap.Push(data)
+	if r.size == 0 || !isInsert {
+		return
+	}
+
+	if r.size >= r.maxHeap.GetSize() {
+		return
+	}
+	de := r.minHeap.Pop()
+	r.maxHeap.Del(de.Id())
 }

@@ -6,8 +6,12 @@ import (
 
 func TestCustomTextFormatter_PrintColored(t *testing.T) {
 	SwitchColor(true)
-	logger.Infof("This is a %s test", "test")
-	logger.Debug("This is a debug test", "test")
-	logger.Errorf("This is a %s test", "test")
-	logger.Warnf("This is a %s test", "test")
+	Logger.Infof("This is a %s test", "test")
+	Logger.Debug("This is a debug test", "test")
+	Logger.Errorf("This is a %s test", "test")
+	Logger.Warnf("This is a %s test", "test")
+	Infof("This is a %s test", "test")
+	Debugf("This is a %s test", "test")
+	Warnf("This is a %s test", "test")
+	Errorf("This is a %s test", "test")
 }
