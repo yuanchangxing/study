@@ -1,17 +1,16 @@
 package algorithm
 
 import (
+	"context"
+	"sync/atomic"
 	"time"
 )
 
 type delayList struct {
-	list *Heap // 单链表
-	//timeout int64
-	//mutex sync.Mutex
-	re chan interface{}
-	//done    chan struct{}
-	//check chan struct{}
-	id int64
+	list   *Heap // 单链表
+	re     chan interface{}
+	cancel context.CancelFunc
+	fla    int32
 }
 
 type delayData struct {
@@ -25,19 +24,23 @@ func (d *delayData) Less(h heapInterface) bool {
 
 func (d *delayList) Push(v interface{}, timeout int64) {
 	d.list.Push(&delayData{data: v, t: timeout})
-	//select {
-	//case d.check <- struct{}{}:
-	//default:
-	//}
 }
 
 func (d *delayList) loop() {
+	if !atomic.CompareAndSwapInt32(&d.fla, 0, 1) {
+		return
+	}
+
 	var ticker = time.NewTicker(50 * time.Millisecond)
 	defer ticker.Stop()
 
+	c, can := context.WithCancel(context.TODO())
+	d.cancel = can
 	for {
 		select {
 		case <-ticker.C:
+		case <-c.Done():
+			return
 		}
 		now := time.Now().Unix()
 		res := d.list.RangAndDel(func(data heapInterface) bool {
@@ -63,4 +66,12 @@ func NewDelayList(reChanBufLen int) *delayList {
 func (d *delayList) PopWait() interface{} {
 	res := <-d.re
 	return res
+}
+
+func (d *delayList) Stop() {
+	if !atomic.CompareAndSwapInt32(&d.fla, 1, 2) {
+		return
+	}
+
+	d.cancel()
 }
