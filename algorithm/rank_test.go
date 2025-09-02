@@ -52,7 +52,7 @@ func (x *xx) Id() string {
 	return fmt.Sprintf("%d", x.Data)
 }
 
-func (x *xx) Less(data maxHeapInterface) bool {
+func (x *xx) Less(data heapInterface) bool {
 	return x.Data < data.(*xx).Data
 }
 

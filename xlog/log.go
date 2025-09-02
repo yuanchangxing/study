@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/fatih/color"
 	"github.com/sirupsen/logrus"
+	"os"
 	"path/filepath"
 	"time"
 )
@@ -117,6 +118,13 @@ func (f *CustomTextFormatter) formatDefault(entry *logrus.Entry) ([]byte, error)
 
 func Error(args ...interface{}) {
 	Logger.Error(args...)
+}
+
+func PanicCheckErr(err error) {
+	if err != nil {
+		Logger.Errorf("err is %v", err)
+		os.Exit(-1)
+	}
 }
 
 func Errorf(format string, args ...interface{}) {
