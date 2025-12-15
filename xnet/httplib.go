@@ -5,9 +5,11 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+	"reflect"
 	"strings"
 	"time"
 )
@@ -15,6 +17,32 @@ import (
 type xHttp struct{}
 
 var XHttp = &xHttp{}
+
+// HttpGetToResp performs an HTTP GET request to the specified address and unmarshals the JSON response into the provided result pointer.
+func HttpGetToResp(address string, result interface{}) error {
+	var t = reflect.TypeOf(result)
+	if t.Kind() != reflect.Ptr {
+		return fmt.Errorf("result must be a pointer")
+	}
+
+	resp, err := http.Get(address)
+	if err != nil {
+		return err
+	}
+
+	defer resp.Body.Close()
+
+	bs, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	err = json.Unmarshal(bs, result)
+	if err != nil {
+		return fmt.Errorf("%s: %s", err, string(bs))
+	}
+	return nil
+}
 
 // 流式
 func (x *xHttp) PostFormStreamChan(ctx context.Context, url string, reqData interface{}, HeaderValue http.Header) (chan string, error) {
